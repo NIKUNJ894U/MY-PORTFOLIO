@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import axios from "axios";
 import { motion } from "framer-motion";
 import {
   FaRocket,
@@ -14,7 +13,6 @@ import {
 } from "react-icons/fa";
 
 function App() {
-  const [repos, setRepos] = useState([]);
   const [menuOpen, setMenuOpen] = useState(false);
   const [sideLinksOpen, setSideLinksOpen] = useState(false);
   const [robotOpen, setRobotOpen] = useState(false);
@@ -23,6 +21,8 @@ function App() {
     top: 0,
     left: 0,
   });
+  const [isDragging, setIsDragging] = useState(false);
+  const [hasDragged, setHasDragged] = useState(false);
 
   const skills = [
     { name: "HTML", level: 80 },
@@ -49,17 +49,6 @@ function App() {
     "(•‿•) Thanks for visiting Nikunj’s portfolio.",
   ];
 
-  /* LOAD GITHUB PROJECTS */
-  useEffect(() => {
-    axios.get("https://api.github.com/users/NIKUNJ894U/repos").then((res) => {
-      setRepos(
-        res.data
-          .filter((repo) => repo.name !== "Modern-Calculator")
-          .slice(0, 6)
-      );
-    });
-  }, []);
-
   /* ROBOT MESSAGE ROTATION (HAPPY / RANDOM) */
   useEffect(() => {
     const interval = setInterval(() => {
@@ -78,6 +67,7 @@ function App() {
   useEffect(() => {
     function updateRandomPosition() {
       if (typeof window === "undefined") return;
+      if (hasDragged) return; // keep user placement after drag
 
       const padding = 120; // keep robot inside viewport
       const top = Math.random() * (window.innerHeight - padding);
@@ -90,7 +80,7 @@ function App() {
     const interval = setInterval(updateRandomPosition, 30000);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [hasDragged]);
 
   return (
     <div className="bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-white min-h-screen flex relative overflow-hidden">
@@ -576,36 +566,6 @@ function App() {
               </div>
             </motion.div>
 
-            {repos.map((repo) => (
-              <motion.div
-                key={repo.id}
-                whileHover={{ y: -10, scale: 1.03 }}
-                className="rounded-2xl bg-slate-900/80 border border-white/10 p-6 shadow-lg shadow-black/40 hover:border-purple-400/70 hover:shadow-purple-500/40 transition-all duration-200"
-              >
-                <div className="flex items-center gap-2">
-                  <span className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-sky-500 to-purple-500 text-sm">
-                    <FaGithub />
-                  </span>
-                  <h3 className="font-semibold text-lg text-slate-50 break-words">
-                    {repo.name}
-                  </h3>
-                </div>
-
-                <p className="text-slate-300 mt-3 text-sm leading-relaxed min-h-[48px]">
-                  {repo.description || "GitHub repository by Nikunj."}
-                </p>
-
-                <a
-                  href={repo.html_url}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="mt-4 inline-flex items-center gap-2 text-purple-300 hover:text-purple-100 text-sm"
-                >
-                  <span className="h-px w-4 bg-purple-400" />
-                  View Repository
-                </a>
-              </motion.div>
-            ))}
           </div>
         </motion.section>
 
@@ -639,23 +599,29 @@ function App() {
             <p className="text-sm text-slate-300 mb-3">
               Interested in working together or just want to say hi?
             </p>
-            <a
-              href="mailto:contact.nikunj.work@gmail.com"
-              className="inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-purple-500 to-blue-500 px-5 py-2.5 text-sm font-semibold shadow-lg shadow-purple-500/40 hover:shadow-purple-400/60 transition"
-            >
-              <FaEnvelope className="text-sm" />
-              <span>contact.nikunj.work@gmail.com</span>
-            </a>
+            <div className="flex justify-center gap-4 mt-4">
+              <a
+                href="mailto:contact.nikunj.work@gmail.com"
+                className="inline-flex items-center justify-center rounded-full bg-gradient-to-r from-purple-500 to-blue-500 px-10 py-2.5 text-sm font-semibold shadow-lg shadow-purple-500/40 hover:shadow-purple-400/60 transition"
+              >
+                <FaEnvelope className="text-red-500 text-sm" />
+              </a>
 
-            <div className="mt-4 flex items-center justify-center gap-2 text-sm text-slate-300">
-              <FaInstagram className="text-pink-400" />
               <a
                 href="https://www.instagram.com/nikunj.contact_/"
                 target="_blank"
                 rel="noreferrer"
-                className="hover:text-pink-300 underline underline-offset-4"
+                className="inline-flex items-center justify-center rounded-full bg-gradient-to-r from-purple-500 to-blue-500 px-10 py-2.5 text-sm font-semibold shadow-lg shadow-purple-500/40 hover:shadow-purple-400/60 transition"
               >
-                Instagram: @nikunj.contact_
+                <FaInstagram className="text-sm" />
+              </a>
+              <a
+                href="https://github.com/NIKUNJ894U"
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center justify-center rounded-full bg-gradient-to-r from-purple-500 to-blue-500 px-10 py-2.5 text-sm font-semibold shadow-lg shadow-purple-500/40 hover:shadow-purple-400/60 transition"
+              >
+                <FaGithub className="text-gray-900 text-sm" />
               </a>
             </div>
           </div>
@@ -664,7 +630,26 @@ function App() {
 
       {/* FLOATING ROBOT ASSISTANT */}
       <motion.div
-        className="fixed z-40 flex flex-col items-end gap-3 pointer-events-none"
+        drag
+        dragMomentum={false}
+        onDragStart={() => setIsDragging(true)}
+        onDragEnd={(event, info) => {
+          setIsDragging(false);
+          setHasDragged(true);
+          setRobotPosition((prev) => {
+            const nextTop = prev.top + info.offset.y;
+            const nextLeft = prev.left + info.offset.x;
+            const padding = 80;
+            const maxTop = Math.max(window.innerHeight - padding, 0);
+            const maxLeft = Math.max(window.innerWidth - padding, 0);
+
+            return {
+              top: Math.min(Math.max(nextTop, 0), maxTop),
+              left: Math.min(Math.max(nextLeft, 0), maxLeft),
+            };
+          });
+        }}
+        className="fixed z-40 flex flex-col items-end gap-3"
         style={{
           top: robotPosition.top,
           left: robotPosition.left,
@@ -687,6 +672,7 @@ function App() {
           whileHover={{ scale: 1.08, rotate: -2 }}
           whileTap={{ scale: 0.96 }}
           onClick={() => {
+            if (isDragging) return;
             setRobotOpen((prev) => !prev);
           }}
           className="flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-br from-slate-200 via-slate-400 to-slate-600 shadow-2xl shadow-slate-900/60 border border-white/10 pointer-events-auto"

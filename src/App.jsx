@@ -239,6 +239,39 @@ GITHUB PROJECTS
 
 <div className="grid md:grid-cols-3 gap-8">
 
+{/* MODERN CALCULATOR PROJECT */}
+
+<motion.div
+whileHover={{scale:1.05,rotateX:5,rotateY:5}}
+className="bg-[#111] p-6 rounded-xl border border-purple-600 shadow-[0_0_12px_#a855f7]"
+>
+
+<h3 className="font-bold text-lg">
+Modern Calculator
+</h3>
+
+<p className="text-gray-400 mt-2">
+A modern calculator application with advanced mathematical operations and a sleek interface.
+</p>
+
+<a
+href="https://github.com/NIKUNJ894U/Modern-Calculator"
+target="_blank"
+className="text-purple-400 mt-4 block"
+>
+View Repository
+</a>
+
+<a
+href="https://modern-calculator-phi.vercel.app/"
+target="_blank"
+className="text-purple-400 mt-2 block"
+>
+View Live App
+</a>
+
+</motion.div>
+
 {repos.map(repo=>(
 
 <motion.div

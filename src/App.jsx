@@ -22,7 +22,7 @@ const skills = [
 useEffect(()=>{
 axios.get("https://api.github.com/users/NIKUNJ894U/repos")
 .then(res=>{
-setRepos(res.data.slice(0,6))
+setRepos(res.data.filter(repo => repo.name !== "Modern-Calculator").slice(0,6))
 })
 },[])
 

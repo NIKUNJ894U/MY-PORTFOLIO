@@ -1,0 +1,19 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body{
+  background:#0a0a0f;
+  color:white;
+  font-family:sans-serif;
+}
+
+.neon-glow{
+  text-shadow:0 0 10px #a855f7,0 0 20px #a855f7;
+}
+
+.card{
+  background:#111;
+  border:1px solid #a855f7;
+  box-shadow:0 0 10px #a855f7;
+}

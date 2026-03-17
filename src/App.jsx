@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import axios from "axios";
 import { motion } from "framer-motion";
 import {
   FaRocket,
@@ -13,16 +14,20 @@ import {
 } from "react-icons/fa";
 
 function App() {
+  const skillsBootTimeoutsRef = useRef([]);
   const [menuOpen, setMenuOpen] = useState(false);
   const [sideLinksOpen, setSideLinksOpen] = useState(false);
   const [robotOpen, setRobotOpen] = useState(false);
   const [currentMessageIndex, setCurrentMessageIndex] = useState(0);
+  const [repos, setRepos] = useState([]);
   const [robotPosition, setRobotPosition] = useState({
     top: 0,
     left: 0,
   });
   const [isDragging, setIsDragging] = useState(false);
   const [hasDragged, setHasDragged] = useState(false);
+  const [skillsBootStage, setSkillsBootStage] = useState("idle"); // idle | processing | ready
+  const [skillsDots, setSkillsDots] = useState("");
 
   const skills = [
     { name: "HTML", level: 80 },
@@ -48,6 +53,20 @@ function App() {
     "(ﾉ◕ヮ◕)ﾉ*:･ﾟ✧ Let’s discover some projects.",
     "(•‿•) Thanks for visiting Nikunj’s portfolio.",
   ];
+
+  /* LOAD GITHUB PROJECTS (keep API call intact) */
+  useEffect(() => {
+    axios.get("https://api.github.com/users/NIKUNJ894U/repos").then((res) => {
+      const filtered = res.data.filter((repo) => {
+        const name = String(repo?.name || "").toLowerCase();
+        if (name === "modern-calculator") return false; // shown as featured card
+        if (name === "portfolio") return false; // remove this portfolio repo
+        return true;
+      });
+
+      setRepos(filtered.slice(0, 1));
+    });
+  }, []);
 
   /* ROBOT MESSAGE ROTATION (HAPPY / RANDOM) */
   useEffect(() => {
@@ -81,6 +100,26 @@ function App() {
 
     return () => clearInterval(interval);
   }, [hasDragged]);
+
+  /* SKILLS "BOOT" ANIMATION (replays on each visit) */
+  useEffect(() => {
+    if (skillsBootStage !== "processing") return;
+
+    let dotIndex = 0;
+    const dotsInterval = setInterval(() => {
+      dotIndex = (dotIndex + 1) % 4;
+      setSkillsDots(".".repeat(dotIndex));
+    }, 300);
+
+    return () => clearInterval(dotsInterval);
+  }, [skillsBootStage]);
+
+  useEffect(() => {
+    return () => {
+      skillsBootTimeoutsRef.current.forEach((t) => clearTimeout(t));
+      skillsBootTimeoutsRef.current = [];
+    };
+  }, []);
 
   return (
     <div className="bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-white min-h-screen flex relative overflow-hidden">
@@ -404,6 +443,20 @@ function App() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, amount: 0.2 }}
           transition={{ duration: 0.6 }}
+          onViewportEnter={() => {
+            // replay each time user visits skills
+            skillsBootTimeoutsRef.current.forEach((t) => clearTimeout(t));
+            skillsBootTimeoutsRef.current = [];
+            setSkillsBootStage("processing");
+
+            skillsBootTimeoutsRef.current.push(
+              setTimeout(() => setSkillsBootStage("ready"), 1400)
+            );
+          }}
+          onViewportLeave={() => {
+            // reset so animation plays again on next visit
+            setSkillsBootStage("idle");
+          }}
         >
           <div className="flex items-center justify-center gap-3 mb-8">
             <motion.span
@@ -422,26 +475,40 @@ function App() {
             </h2>
           </div>
 
-          {/* SOFT TERMINAL HEADER */}
-          <div className="mb-8 rounded-2xl bg-slate-900/70 px-5 py-4 font-mono text-sm text-emerald-300 border border-emerald-400/20 shadow-lg shadow-emerald-500/20">
-            <p>&gt; loading skills...</p>
-            <p>&gt; system ready</p>
+          {/* MATRIX-STYLE BOOT HEADER */}
+          <div className="mb-8 rounded-2xl bg-slate-950/60 px-5 py-4 font-mono text-sm border border-white/10 shadow-lg shadow-black/40 backdrop-blur">
+            <p className="text-emerald-300">
+              &gt; processing{skillsBootStage === "processing" ? skillsDots : "..."}
+            </p>
+            <p className="text-emerald-300">
+              &gt; {skillsBootStage === "ready" ? "system ready" : "initializing"}
+            </p>
           </div>
 
-          {/* SKILL CARDS */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-            {skills.map((skill) => (
-              <motion.div
-                key={skill.name}
-                whileHover={{ y: -6, scale: 1.03 }}
-                className="rounded-2xl bg-slate-900/80 border border-white/10 p-4 text-center shadow-lg shadow-black/40 hover:border-purple-400/70 hover:shadow-purple-500/40 transition-all duration-200"
-              >
-                <p className="text-sm font-semibold text-slate-100">
-                  {skill.name}
-                </p>
-              </motion.div>
-            ))}
-          </div>
+          {/* SKILLS MATRIX GRID */}
+          {skillsBootStage === "ready" && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.45 }}
+              className="grid grid-cols-2 md:grid-cols-4 gap-4 font-mono"
+            >
+              {skills.map((skill) => (
+                <motion.div
+                  key={skill.name}
+                  whileHover={{ y: -6, scale: 1.03 }}
+                  className="rounded-2xl bg-slate-900/70 border border-white/10 p-4 text-center shadow-lg shadow-black/40 hover:border-purple-400/70 hover:shadow-purple-500/40 transition-all duration-200"
+                >
+                  <p className="text-xs font-semibold tracking-wide text-slate-100">
+                    {skill.name}
+                  </p>
+                  <p className="mt-1 text-[10px] text-slate-400">
+                    STATUS: <span className="text-emerald-300">ONLINE</span>
+                  </p>
+                </motion.div>
+              ))}
+            </motion.div>
+          )}
         </motion.section>
 
         {/* JOURNEY / TIMELINE */}
@@ -566,6 +633,36 @@ function App() {
               </div>
             </motion.div>
 
+            {repos.map((repo) => (
+              <motion.div
+                key={repo.id}
+                whileHover={{ y: -10, scale: 1.03 }}
+                className="rounded-2xl bg-slate-900/80 border border-white/10 p-6 shadow-lg shadow-black/40 hover:border-purple-400/70 hover:shadow-purple-500/40 transition-all duration-200"
+              >
+                <div className="flex items-center gap-2">
+                  <span className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-sky-500 to-purple-500 text-sm">
+                    <FaGithub />
+                  </span>
+                  <h3 className="font-semibold text-lg text-slate-50 break-words">
+                    {repo.name}
+                  </h3>
+                </div>
+
+                <p className="text-slate-300 mt-3 text-sm leading-relaxed min-h-[48px]">
+                  {repo.description || "GitHub repository by Nikunj."}
+                </p>
+
+                <a
+                  href={repo.html_url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="mt-4 inline-flex items-center gap-2 text-purple-300 hover:text-purple-100 text-sm"
+                >
+                  <span className="h-px w-4 bg-purple-400" />
+                  View Repository
+                </a>
+              </motion.div>
+            ))}
           </div>
         </motion.section>
 
@@ -653,9 +750,14 @@ function App() {
         style={{
           top: robotPosition.top,
           left: robotPosition.left,
+          perspective: 900,
         }}
-        animate={{ y: [0, -14, 0] }}
-        transition={{ duration: 3.5, repeat: Infinity, ease: "easeInOut" }}
+        animate={{
+          y: [0, -14, 0],
+          rotateX: [0, 10, 0, -10, 0],
+          rotateY: [0, -12, 0, 12, 0],
+        }}
+        transition={{ duration: 3.8, repeat: Infinity, ease: "easeInOut" }}
       >
         {robotOpen && (
           <motion.div
